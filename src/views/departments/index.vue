@@ -9,15 +9,16 @@
         <el-tree :data="departs" :props="defaultProps" :default-expand-all="true">
           <!-- 传入内容 插槽内容 会循环多次 有多少节点 就循环多少次-->
           <!-- 作用域插槽 slot-scope='obj' 接收传递给插槽的数据 data 就是每个节点的数据对象-->
-          <tree-tools slot-scope="{data}" :tree-node="data" @delDepts="getDepartments" @addDepts="addDepts" />
+          <tree-tools slot-scope="{data}" :tree-node="data" @delDepts="getDepartments" @editDepts="editDepts" @addDepts="addDepts" />
         </el-tree>
       </el-card>
       <!-- 放置新增弹层组件 -->
-      <add-dept :show-dialog1.sync="showDialog" :show-dialog="showDialog" :tree-node="node" @addDepts="getDepartments" />
-    </div>
-  </div>
 
-</template>
+      <add-dept ref="addDept" :show-dialog1.sync="showDialog" :show-dialog="showDialog" :tree-node="node" @addDepts="getDepartments" />
+      <div v-loading="loading" class="dashboard-container" />
+    </div>
+
+  </div></template>
 
 <script>
 import TreeTools from './components/tree-tooles.vue'
@@ -37,7 +38,8 @@ export default {
         label: 'name' // 表示 从这个属性显示内容
       },
       showDialog: false, //  默认不显示弹窗
-      node: null // 记录当前点击的node节点
+      node: null, // 记录当前点击的node节点
+      loading: false // 用来控制进度弹层的显示和隐藏
     }
   },
   created() {
@@ -46,16 +48,27 @@ export default {
   methods: {
 
     async getDepartments() {
+      this.loading = true
       const result = await getDepartments()
       this.company = { name: result.companyName, manager: '负责人', id: '' }
       this.departs = tranListToTreeData(result.depts, '') // 需要将其转化为树形结构
       console.log(result)
+      this.loading = false
     },
     // 监听tree-tools中触发的点击添加子部门事件
     addDepts(node) {
       this.showDialog = true // 显示弹层
       // 因为node是当前的点击的部门， 此时这个部门应该记录下来,
       this.node = node
+    },
+    editDepts(node) {
+      // 打开弹出层
+      this.showDialog = true
+      this.node = node
+      // 我们需要在这个地方 调用子组件的方法
+      // 父组件调用子组件的方法
+      // console.log(this.$refs.addDept)
+      this.$refs.addDept.getDepartDetail(node.id)
     }
   }
 

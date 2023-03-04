@@ -54,6 +54,7 @@ export default {
         this.$emit('addDepts', this.treeNode) // 为何传出treeNode 是因为添加子部门 需要当前部门的数据
       } else if (type === 'edit') {
         // 编辑部门的操作
+        this.$emit('editDepts', this.treeNode) // 触发自定义事件 点击谁 编辑谁
       } else {
         // 删除部门的操作
         this.$confirm('确定要删除该部门吗').then(() => {

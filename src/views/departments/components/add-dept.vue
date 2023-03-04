@@ -1,26 +1,26 @@
 <template>
   <!-- 新增部门的弹层 -->
-  <el-dialog title="新增部门" :visible="showDialog" @close="btnCancel">
+  <el-dialog :title="showTitle" :visible="showDialog" @close="btnCancel">
     <!-- 表单组件  el-form   label-width设置label的宽度   -->
     <!-- 匿名插槽 -->
-    <el-form ref="deptForm" :model="formDate" :rules="rules" label-width="120px">
+    <el-form ref="deptForm" :model="formData" :rules="rules" label-width="120px">
       <el-form-item label="部门名称" prop="name">
-        <el-input v-model="formDate.name" style="width:80%" placeholder="1-50个字符" />
+        <el-input v-model="formData.name" style="width:80%" placeholder="1-50个字符" />
       </el-form-item>
 
       <el-form-item label="部门编码" prop="code">
-        <el-input v-model="formDate.code" style="width:80%" placeholder="1-50个字符" />
+        <el-input v-model="formData.code" style="width:80%" placeholder="1-50个字符" />
       </el-form-item>
 
       <el-form-item label="部门负责人" prop="manager">
-        <el-select v-model="formDate.manager" style="width:80%" placeholder="请选择" @focus="getEmployeeSimple">
+        <el-select v-model="formData.manager" style="width:80%" placeholder="请选择" @focus="getEmployeeSimple">
           <!-- 需要循环生成选项   这里做一下简单的处理 显示的是用户名 存的也是用户名-->
           <el-option v-for="item in peoples" :key="item.id" :label="item.username" :value="item.username" />
         </el-select>
       </el-form-item>
 
       <el-form-item label="部门介绍" prop="introduce">
-        <el-input v-model="formDate.introduce" style="width:80%" placeholder="1-300个字符" type="textarea" :rows="3" />
+        <el-input v-model="formData.introduce" style="width:80%" placeholder="1-300个字符" type="textarea" :rows="3" />
       </el-form-item>
     </el-form>
     <!-- el-dialog有专门放置底部操作栏的 插槽  具名插槽 -->
@@ -35,7 +35,7 @@
 </template>
 
 <script>
-import { getDepartments, addDepartments } from '@/api/departments'
+import { getDepartments, addDepartments, getDepartDetail, updateDepartments } from '@/api/departments'
 import { getEmployeeSimple } from '@/api/employees'
 export default {
   props: {
@@ -50,28 +50,50 @@ export default {
     }
   },
   data() {
-    // 定义一个函数 去找 同级部门下是否有重复的部门名称
+    // 现在定义一个函数 这个函数的目的是 去找 同级部门下 是否有重复的部门名称
     const checkNameRepeat = async(rule, value, callback) => {
-      // value 是部门名称 要去和同级部门下的部门去比较 有没有相同的 有相同的 不能过 / 不相同就可以
       // 先要获取最新的组织架构数据
       const { depts } = await getDepartments()
-      // 去找同级部门下 有没有和value相同的数据
-      // 找到同级部门所有的子部门
-      const isRepeat = depts.filter(item => item.pid === this.treeNode.id).some(item => item.name === value)
-      // 如果isRepeat 为true , 表示找到了一样的名字
-      isRepeat ? callback(new Error(`同级部门下已经存在这个${value}部门！`)) : callback()
+      //  检查重复规则 需要支持两种 新增模式 / 编辑模式
+      // depts是所有的部门数据
+      // 如何去找技术部所有的子节点
+
+      let isRepeat = false
+      if (this.formData.id) {
+        // 有id就是编辑模式
+        // 编辑 张三 => 校验规则 除了我之外 同级部门下 不能有叫张三的
+        // 编辑的数据 在数据库有没有！！！  同级部门下 我的名字不能和其他的同级部门的名字进行重复
+        // 首先找到我的同级部门 this.formData.id 就是我当前的id   我的pid是 this.formData.pid
+        isRepeat = depts.filter(item => item.id !== this.formData.id && item.pid === this.treeNode.pid).some(item => item.name === value)
+      } else {
+        // 没id就是新增模式
+        isRepeat = depts.filter(item => item.pid === this.treeNode.id).some(item => item.name === value)
+      }
+
+      isRepeat ? callback(new Error(`同级部门下已经有${value}的部门了`)) : callback()
     }
+
     // 检查编码重复
     const checkCodeRepeat = async(rule, value, callback) => {
+      // 先要获取最新的组织架构数据
+      //  检查重复规则 需要支持两种 新增模式 / 编辑模式
       const { depts } = await getDepartments()
-      // 要求编码 和 所有的部门编码都不能重复 由于历史数据有可能没有code 所有这里加一个强制性条件 value值不为空
-      const isRepeat = depts.some(item => item.code === value && value)
-      isRepeat ? callback(new Error(`组织架构下已经存在这个${value}编码！`)) : callback()
+
+      let isRepeat = false
+      if (this.formData.id) {
+        // 编辑模式  因为编辑模式下 不能算自己
+        isRepeat = depts.some(item => item.id !== this.formData.id && item.code === value && value)
+      } else {
+        // 新增模式
+        isRepeat = depts.some(item => item.code === value && value) // 这里加一个 value不为空 因为我们的部门有可能没有code
+      }
+
+      isRepeat ? callback(new Error(`组织架构中已经有部门使用${value}编码`)) : callback()
     }
 
     return {
       // 定义表单的数据结构
-      formDate: {
+      formData: {
         name: '', // 部门名称
         code: '', // 部门编码
         manager: '', // 部门管理者
@@ -92,19 +114,40 @@ export default {
       peoples: []
     }
   },
+  computed: {
+    showTitle() {
+      return this.formData.id ? '编辑部门' : '新增子部门'
+    }
+  },
   methods: {
     // 获取员工简单类表数据
     async getEmployeeSimple() {
       this.peoples = await getEmployeeSimple()
       // console.log(res)
     },
+    // 获取部门详情方法
+    async getDepartDetail(id) {
+      this.formData = await getDepartDetail(id)
+      // 因为我们是父组件调用子组件的方法 先设置了node 数据 直接调用方法
+      // props 传值是异步的
+    },
+
     btnOK() {
       // 手动校验表单
       this.$refs.deptForm.validate(async isOK => {
         if (isOK) {
           // 表单校验通过
-          // 调用新增接口 添加父部门的id
-          await addDepartments({ ...this.formDate, pid: this.treeNode.id })
+
+          // 要分清现在是编辑还是新增
+          if (this.formData.id) {
+            // 编辑模式 调用编辑接口
+            await updateDepartments(this.formData)
+          } else {
+            // 新增模式
+            // 调用新增接口 添加父部门的id
+            await addDepartments({ ...this.formData, pid: this.treeNode.id })
+          }
+
           // 告诉父组件，重新拉取数据
           this.$emit('addDepts') // 触发一个自定义事件
           // 此时应该去修改showDialog值
@@ -115,9 +158,18 @@ export default {
       })
     },
     btnCancel() {
-      this.$refs.deptForm.resetFields() // 重置校验字段
+      // 重置数据 因为 resetFields只能重置表单上的数据 非表单上的 比如编辑中的 id 不能重置
+      this.formData = {
+        name: '', // 部门名称
+        code: '', // 部门编码
+        manager: '', // 部门管理者
+        introduce: '' // 部门介绍
+      }
+
       // 关闭弹层
       this.$emit('update:showDialog1', false)
+      // 清除之前的校验 可以重置数据 只能重置 定义在data中的数据
+      this.$refs.deptForm.resetFields() // 重置校验字段
     }
   }
 }
