@@ -13,9 +13,10 @@ import store from './store'
 import router from './router'
 
 import * as directives from '@/directives'
+import * as filters from '@/filters' // filters是所有对象的集合
 import '@/icons' // icon
 import '@/permission' // permission control
-
+import Component from '@/components'
 /**
  * If you don't want to use mock-server
  * you want to use MockJs for mock api
@@ -34,6 +35,12 @@ Object.keys(directives).forEach(key => {
   // 注册自定义指令
   Vue.directive(key, directives[key])
 })
+Object.keys(filters).forEach(key => {
+  // 注册过滤器
+  Vue.filter(key, filters[key])
+})
+// 注册自定义组件
+Vue.use(Component)
 Vue.config.productionTip = false
 
 new Vue({
