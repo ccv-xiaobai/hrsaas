@@ -16,5 +16,17 @@ export default {
       title: '员工管理', // 这里为什么要用 title 因为左侧导航读取了这里的title属性
       icon: 'people'
     }
-  }]
+
+  },
+  {
+    // 动态路由参数 /employees/detail/123可以访问到员工详情页面
+    path: 'detail/:id', // ?的含义表示参数可传可不传
+    hidden: true, // 表示该内容不在左侧菜单显示
+    component: () =>
+      import ('@/views/employees/detail'),
+    meta: {
+      title: '员工详情'
+    }
+  }
+  ]
 }

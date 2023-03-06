@@ -80,7 +80,7 @@ export default {
           pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确', trigger: 'blur'
         }],
         formOfEmployment: [{ required: true, message: '聘用形式不能为空', trigger: 'blur' }],
-        workNumber: [{ required: true, message: '工号不能为空', trigger: ['blur', 'change'] }],
+        workNumber: [{ required: true, message: '工号不能为空', trigger: 'blur' }],
         departmentName: [{ required: true, message: '部门不能为空', trigger: 'change' }],
         timeOfEntry: [{ required: true, message: '入职时间', trigger: 'blur' }]
       },
