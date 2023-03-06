@@ -13,7 +13,7 @@
       </el-form-item>
       <el-form-item label="聘用形式" prop="formOfEmployment">
         <el-select v-model="formData.formOfEmployment" style="width:50%" placeholder="请选择">
-          <!-- 遍历只能遍历组件的数据 -->
+          <!-- 遍历只能遍历组件的数据 :label=显示的值， :value=要存的值-->
           <el-option v-for="item in EmployeeEnum.hireType" :key="item.id" :label="item.value" :value="item.id" />
         </el-select>
       </el-form-item>
@@ -80,7 +80,7 @@ export default {
           pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确', trigger: 'blur'
         }],
         formOfEmployment: [{ required: true, message: '聘用形式不能为空', trigger: 'blur' }],
-        workNumber: [{ required: true, message: '工号不能为空', trigger: 'blur' }],
+        workNumber: [{ required: true, message: '工号不能为空', trigger: ['blur', 'change'] }],
         departmentName: [{ required: true, message: '部门不能为空', trigger: 'change' }],
         timeOfEntry: [{ required: true, message: '入职时间', trigger: 'blur' }]
       },
@@ -96,29 +96,30 @@ export default {
       this.loading = true
       const { depts } = await getDepartments()
       // depts是数组 需要转化成树形结构 才可以被 el-tree组件显示
+      // this.treeData数组来接收树形结构
       this.treeData = tranListToTreeData(depts, '')
       this.loading = false
     },
-
     selectNode(node) {
       this.formData.departmentName = node.name
       this.showTree = false
     },
+    // 点击确定时 校验整个表单
     async btnOK() {
-      // 校验表单
       try {
         await this.$refs.addEmployee.validate()
-        // 校验成功
         // 调用新增接口
-        await addEmployee(this.formData)
-        // 通知父组件更新数据
-        // this.$parent 可以直接调用父组件的实例 实际上就是父组件的this
+        await addEmployee(this.formData) // 新增员工  // formOfEmployment聘用形式存进去了
+        // 告诉父组件更新数据
+        // this.$parent 可以直接调用到父组件的实例 实际上就是父组件this
         // this.$emit
-        this.$parent.getDepartments && this.$parent.getDepartments() // 直接调用父组件的更新方法
+        this.$parent.getEmployeeList()
         this.$parent.showDialog = false
+        // 这里不用重置数据 因为 关闭弹层触发了close事件 close事件绑定了btnCancel方法
         this.$message.success('添加成功')
-        // this.$parent.getEmployeeList()
-        this.$emit('getEmployeeList')
+
+        //  this.$emit('getEmployeeList')
+        //  <add-demployee :show-dialog.sync="showDialog" @getEmployeeList="getEmployeeList()" />
       } catch (error) {
         console.log(error)
       }
@@ -134,10 +135,11 @@ export default {
         timeOfEntry: '',
         correctionTime: ''
       }
-      this.$refs.addEmployee.resetFields() // 移除之前的校验
+      this.$refs.addEmployee.resetFields() // 重置校验结果
       this.$emit('update:showDialog', false)
       // update:props名称 这么写的话 可以在父组件 直接用sync修饰符处理
     }
+
   }
 
 }

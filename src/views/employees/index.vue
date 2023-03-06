@@ -7,8 +7,8 @@
         <template v-slot:before>共{{ page.total }}条数据</template>
         <!-- 右侧显示三个按钮 excel导入 excel导出 新增员工 -->
         <template v-slot:after>
-          <el-button size="small" type="success">excel导入</el-button>
-          <el-button size="small" type="danger">excel导出</el-button>
+          <el-button size="small" type="success" @click="$router.push('/import')">excel导入</el-button>
+          <el-button size="small" type="danger" @click="exportData">excel导出</el-button>
           <el-button icon="plus" size="small" type="primary" @click="showDialog = true">新增员工</el-button>
         </template>
       </page-tools>
@@ -64,6 +64,7 @@
 import { delEmployee, getEmployeeList } from '@/api/employees'
 import EmployeeEnum from '@/api/constant/employees' // 引入员工的枚举对象
 import AddDemployee from '@/views/employees/components/add-employee.vue'
+import { formatDate } from '@/filters'
 export default {
   components: { AddDemployee },
   data() {
@@ -96,7 +97,13 @@ export default {
     },
     // 格式化聘用形式
     formatEmployment(row, column, cellValue, index) {
+      // console.log(1) // 有多少条数据就执行多少次1
+      // row 当前行的数据
+      // column 列的属性
+      // cellValue 单元格的值 每一行里面聘用形式的值
       // 要去找1所对应的值
+
+      // 要去找 1所对应的值
       const obj = EmployeeEnum.hireType.find(item => item.id === cellValue)
       return obj ? obj.value : '未知'
     },
@@ -110,8 +117,72 @@ export default {
       } catch (error) {
         console.log(error)
       }
+    }, // 导出excel
+    exportData() {
+      const headers = {
+        '姓名': 'username',
+        '手机号': 'mobile',
+        '入职日期': 'timeOfEntry',
+        '聘用形式': 'formOfEmployment',
+        '转正日期': 'correctionTime',
+        '工号': 'workNumber',
+        '部门': 'departmentName'
+      }
+      // 懒加载
+      import('@/vendor/Export2Excel').then(async excel => {
+      // excel是引入文件的导出对象
+      // 导出  header从哪里来 data从哪里来
+      // 现在没有一个接口获取所有的数据
+      // 获取员工的接口 页码 每页条数 100 1
+        const { rows } = await getEmployeeList({ page: 1, size: this.page.total })
+        const data = this.formatJson(headers, rows)
+        const multiHeader = [['姓名', '主要信息', '', '', '', '', '部门']]
+        const merges = ['A1:A2', 'B1:F1', 'G1:G2']
+        excel.export_json_to_excel({
+          header: Object.keys(headers), // ['姓名', '工资','入职日期']
+          data,
+          filename: '员工资料表',
+          multiHeader, // 复杂表头
+          merges // 合并选项
+        })
+        /*  excel.export_json_to_excel({
+          header: ['姓名', '工资'],
+          data: [['张三', 3000], ['李四', 5000]],
+          filename: '员工信息表',
+          bookType: 'xlsx'
+        }) */
+        // [{ username:'张三', mobile: 15265485654 }] => [[  ]]
+        // 不但要转化数据结构 还要和表头的顺序对应上
+        // 要求 转出的标题是中文
+      })
+    },
+
+    // 将表头数据和导出数据对应
+    // [{}] => [[]]
+    formatJson(headers, rows) {
+      return rows.map(item => {
+        // item是一个对象 { username:'张三',  mobile:15245845685 }
+        // ['姓名', '手机号','入职日期']
+        return Object.keys(headers).map(key => { // key => 姓名
+        // 需要判断 字段
+          if (headers[key] === 'timeOfEntry' || headers[key] === 'correctionTime') {
+          // 格式化日期  import { formatDate } from '@/filters'
+            return formatDate(item[headers[key]])
+          } else if (headers[key] === 'formOfEmployment') {
+            // 1 2 import EmployeeEnum from '@/api/constant/employees' // 引入员工的枚举对象
+            const obj = EmployeeEnum.hireType.find(obj => obj.id === item[headers[key]]) // 此处find里的变量名不能重复！！！
+            return obj ? obj.value : '未知'
+          }
+
+          // headers[key]转为英文 姓名 => username
+          // item[headers[key]]  => item.username => 张三
+          return item[headers[key]] // 返回一个姓名 张三
+        })
+        // [ '张三' ,15223568545 ,  '2023-3-6' , '' ]
+      })
     }
   }
+
 }
 </script>
 

@@ -11,6 +11,7 @@
         <button slot="after" type="primary">导出excel</button>
       </template>
     </page-tools>
+    <upload-excel />
   </div>
 </template>
 
