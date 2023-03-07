@@ -1,17 +1,7 @@
 <template>
   <div class="dashboard-container">
     <div class="dashboard-text">name: {{ name }}</div>
-    <page-tools :show-before="true">
-      <!-- 插槽除了 slot="name" v-slot -->
-      <!-- slot="名称" v-slot:名称 -->
-      <template v-slot:before>
-        <span>我想你们</span>
-      </template>
-      <template>
-        <button slot="after" type="primary">导出excel</button>
-      </template>
-    </page-tools>
-    <upload-excel />
+    <ImageUpload />
   </div>
 </template>
 
