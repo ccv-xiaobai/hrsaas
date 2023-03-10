@@ -17,6 +17,7 @@ import * as filters from '@/filters' // filters是所有对象的集合
 import '@/icons' // icon
 import '@/permission' // permission control
 import Component from '@/components'
+import checkPermission from './mixin/checkPermission'
 /**
  * If you don't want to use mock-server
  * you want to use MockJs for mock api
@@ -42,6 +43,8 @@ Object.keys(filters).forEach(key => {
 // 注册自定义组件
 Vue.use(Component)
 Vue.config.productionTip = false
+// 全局混入检查对象
+Vue.mixin(checkPermission) // 表示所有的组件都拥有了检查的方法
 
 new Vue({
   el: '#app',
