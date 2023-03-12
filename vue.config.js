@@ -14,7 +14,31 @@ const name = defaultSettings.title || 'vue Admin Template' // page title
 // You can change the port by the following methods:
 // port = 9528 npm run dev OR npm run dev --port = 9528
 const port = process.env.port || process.env.npm_config_port || 9528 // dev port
-
+let cdn = { css: [], js: [] }
+let externals = {}
+const isProd = process.env.NODE_ENV === 'production' // 判断是否是生产环境
+if (isProd) {
+  // 只有生产环境 才有必要 去做排除和cdn的注入
+  externals = {
+    'vue': 'Vue',
+    'element-ui': 'ELEMENT',
+    'xlsx': 'XLSX'
+  }
+  cdn = {
+    css: [
+      // element-ui css
+      'https://unpkg.com/element-ui/lib/theme-chalk/index.css' // 样式表
+    ],
+    js: [
+      // vue must at first!
+      'https://unpkg.com/vue/dist/vue.js', // vuejs
+      // element-ui js
+      'https://unpkg.com/element-ui/lib/index.js', // elementUI
+      'https://cdn.jsdelivr.net/npm/xlsx@0.16.6/dist/jszip.min.js',
+      'https://cdn.jsdelivr.net/npm/xlsx@0.16.6/dist/xlsx.full.min.js'
+    ]
+  }
+}
 // All configuration item explanations can be find in https://cli.vuejs.org/config/
 module.exports = {
   /**
@@ -55,7 +79,9 @@ module.exports = {
       alias: {
         '@': resolve('src')
       }
-    }
+    },
+    // 排除 elementUI xlsx  和 vue
+    externals: externals
   },
   chainWebpack(config) {
     // it can improve the speed of the first screen, it is recommended to turn on preload
@@ -66,7 +92,13 @@ module.exports = {
       fileBlacklist: [/\.map$/, /hot-update\.js$/, /runtime\..*\.js$/],
       include: 'initial'
     }])
-
+    // 注入cdn变量
+    // 这行代码 会在执行打包的时候 执行 就会将cdn变量注入到html模板中
+    config.plugin('html').tap((args) => {
+      // args是注入html模板的一个变量
+      args[0].cdn = cdn // 后面的cdn就是定义的变量
+      return args // 需要返回这个参数
+    })
     // when there are many pages, it will cause too many meaningless requests
     config.plugins.delete('prefetch')
 
