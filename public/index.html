@@ -9,6 +9,7 @@
     <title>
         <%= webpackConfig.name %>
     </title>
+    <!-- 放置css文件 -->
     <!-- 引入样式 -->
     <% for(var css of htmlWebpackPlugin.options.cdn.css) { %>
         <link rel="stylesheet" href="<%=css%>">
